@@ -30,7 +30,6 @@ float threaded_rod_pitch = 1.5;
 
 // LCD values
 LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
-float refresh_rate = 1; // refresh rate, Hz
 int wholePart;
 int decPart;
 String s1 = "                "; // upper line
@@ -59,13 +58,12 @@ float revs_per_mL = 1.0;//syringe_barrel_length/(threaded_rod_pitch*syringe_volu
 
 // user input values
 float volume = 0; // cumulative volume, mL
-float volume_increment = 1.0/revs_per_mL; //10/(steps_per_revolution*revs_per_mL); // volume increment, mL
+float volume_increment = 1.0/revs_per_mL; // volume increment, mL
 float flow_rate; // flow rate, mL/s
 float flow_rate_increment = 1/60.0; // flow rate increment, mL/s
 
 // ---------------------------------------------------------------------------
 
-/*
 String dec_to_str(float num){
   // displays numbers in %4.2f format
 
@@ -110,30 +108,21 @@ String dec_to_str(float num){
   return "    ";
 }
 
-void increment_values()
+void increment_values(int key_press)
 {
-  if (dir == KEY_UP && flow_rate <= (MAX_FLOW_RATE - flow_rate_increment)) {
+  if (key_press == KEY_UP && flow_rate <= (MAX_FLOW_RATE - flow_rate_increment)) {
     flow_rate += flow_rate_increment;
-  } else if (dir == KEY_DOWN && flow_rate >= (MIN_FLOW_RATE + flow_rate_increment)) {
+  } else if (key_press == KEY_DOWN && flow_rate >= (MIN_FLOW_RATE + flow_rate_increment)) {
     flow_rate -= flow_rate_increment;
   }
   revs_per_s = revs_per_mL*flow_rate; // revs/s
-  //delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
+  delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
 }
-*/
-void move_syringe()
+
+void move_syringe(int dir)
 {
-  /*
-  if (dir == HIGH){
-    digitalWrite(motorDirPin, HIGH);
-    //volume += volume_increment;
-  } else if (dir == LOW) {
-    digitalWrite(motorDirPin, LOW);
-    //volume -= volume_increment;
-  }
-  */
-  delay_per_step = (1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]));
-    
+  digitalWrite(motorDirPin, dir);
+  
   for (long j=0; j<steps_per_revolution; j++) {
     for (int k=0; k<usteps_per_step[USTEPS_INDEX]; k++) {
       digitalWrite(motorStepPin, HIGH);
@@ -143,7 +132,7 @@ void move_syringe()
     }
   }
 }
-/*
+
 void do_key_action(unsigned int key)
 {
   // if the up or down button is held down, delay between actions
@@ -158,14 +147,16 @@ void do_key_action(unsigned int key)
     volume = 0; // clear
     delay(debounce);
   } else if (key == KEY_RIGHT) {
-    //move_syringe(KEY_RIGHT);
+    move_syringe(HIGH);
+    volume += volume_increment;
   } else if (key == KEY_LEFT) {
-    //move_syringe(KEY_LEFT);
+    move_syringe(LOW);
+    volume -= volume_increment;
   } else if (key == KEY_DOWN) {
-    //increment_values(KEY_DOWN);
+    increment_values(key);
     delay(debounce);
   } else if (key == KEY_UP) {
-    //increment_values(KEY_UP);
+    increment_values(key);
     delay(debounce);
   }
 }
@@ -183,7 +174,14 @@ void handle_keypress()
   s1 = "Q = " + dec_to_str(flow_rate*60) + "mL/min"; // upper line
   s2 = "V = " + dec_to_str(volume)    + "mL   "; // lower line
 }
-*/
+
+void refresh(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print(s1);
+  lcd.setCursor(0,1);
+  lcd.print(s2);
+}
 
 void setup(void)
 {
@@ -194,10 +192,13 @@ void setup(void)
   // button pin    
   pinMode(buttonPin, INPUT);
   
+  /*
   // interrupt to refresh the LCD
-  Timer1.initialize(100000); // delay in us
-  Timer1.attachInterrupt(refresh);
-
+  long timer_delay = 100e3; // delay in us
+  Timer1.initialize(timer_delay);
+  Timer1.attachInterrupt(refresh,timer_delay);
+  */
+  
   // stepper motor setup
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
@@ -212,15 +213,13 @@ void setup(void)
 
   flow_rate = 1.0; // mL/s
   revs_per_s = revs_per_mL*flow_rate; // revs/s
-  //delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
-  
-  Serial.begin(9600); // Note that your serial connection must be set to 57600 to work!
+  delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
 }
 
 void loop(void)
 {
   //handle_keypress();
-  move_syringe();
+  move_syringe(dir);
   
   // change direction
   if (dir == HIGH) {

@@ -1,16 +1,16 @@
 # syringe_pump
-An alternative implementation of the OpenSyringe Pump software.
+An alternative implementation of the OpenSyringe Pump program.
 
 This program drives a DIY syringe pump based heavily on that from the [OpenSyringe Pump][1].
-Code and help for the Big Easy Driver is [here][2].
+The user can set the flow rate in mL/min and then drive the pump back or forth manually.
+The syringe pump rail in this implementation is an assembled 300mm actuator kit from [MakerStore][2]
 
-Changes include:
+Updates to the program include:
 
- - The syringe pump rail is an assembled 300mm actuator kit from [MakerStore][3]
- - 
-
+ - The ADC millivolt readings LCD shield have been fixed
+ - A timer interrupt is used to update the LCD
+ - The number of required 3D printed parts are reduced
 
 [1]: https://hackaday.io/project/1838-open-syringe-pump
-[2]: https://www.sparkfun.com/products/12859
-[3]: http://www.makerstore.com.au/product/300mm-actuator-kit/
+[2]: http://www.makerstore.com.au/product/300mm-actuator-kit/
 
