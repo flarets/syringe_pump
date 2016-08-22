@@ -6,9 +6,9 @@
 const byte buttonPin = A0; // analogue pin 0
 const byte motorDirPin = 2;
 const byte motorStepPin = 3;
-const byte MS1 = 4;
-const byte MS2 = 5;
-const byte MS3 = 6;
+const byte MS1 = 11;
+const byte MS2 = 12;
+const byte MS3 = 13;
 
 // stepper motor constants
 long steps_per_revolution = 400;
@@ -24,16 +24,17 @@ float MIN_FLOW_RATE = 0.99/60.0; // min flow rate, mL/min, accounts for round-of
 float MAX_FLOW_RATE = 60.0/60.0; // max flow rate, mL/min
 
 // syringe pump constants
-float syringe_volume = 25.0;
-float syringe_barrel_length = 78.0;
-float threaded_rod_pitch = 1.5;
+float syringe_volume = 25.0; // mL
+float syringe_barrel_length = 78.5; // mm
+float threaded_rod_pitch = 8.0; // mm/rev
 
 // LCD values
-LiquidCrystal lcd(8, 13, 9, 4, 5, 6, 7);
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
 int wholePart;
 int decPart;
-String s1 = "                "; // upper line
-String s2 = "                "; // lower line
+String s1 = " syringe_pump   "; // upper line
+String s2 = " 22 aug 2016    "; // lower line
 
 // Button values
 enum{KEY_SELECT, KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP, KEY_NONE};
@@ -54,11 +55,12 @@ float revs_per_s; // revs per second
 long delay_per_step; // delay per step, us
 
 // syringe pump values
-float revs_per_mL = 1.0;//syringe_barrel_length/(threaded_rod_pitch*syringe_volume); // revs/mL
+float revs_per_mL = syringe_barrel_length/(threaded_rod_pitch*syringe_volume); // revs/mL
+unsigned int NSTEPS = 10;
 
 // user input values
 float volume = 0; // cumulative volume, mL
-float volume_increment = 1.0/revs_per_mL; // volume increment, mL
+float volume_increment = NSTEPS/(revs_per_mL*steps_per_revolution); // volume increment, mL
 float flow_rate; // flow rate, mL/s
 float flow_rate_increment = 1/60.0; // flow rate increment, mL/s
 
@@ -116,14 +118,16 @@ void increment_values(int key_press)
     flow_rate -= flow_rate_increment;
   }
   revs_per_s = revs_per_mL*flow_rate; // revs/s
-  delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
+  delay_per_step = 0.8e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]); // us/step
 }
 
 void move_syringe(int dir)
 {
   digitalWrite(motorDirPin, dir);
   
-  for (long j=0; j<steps_per_revolution; j++) {
+  for (long j=0; j<NSTEPS; j++) {
+    //if (dir == HIGH) volume += volume_increment;
+    //else volume -= volume_increment;
     for (int k=0; k<usteps_per_step[USTEPS_INDEX]; k++) {
       digitalWrite(motorStepPin, HIGH);
       delayMicroseconds(delay_per_step/2);
@@ -159,6 +163,8 @@ void do_key_action(unsigned int key)
     increment_values(key);
     delay(debounce);
   }
+  s1 = "Q = " + dec_to_str(flow_rate*60) + "mL/min"; // upper line
+  s2 = "V = " + dec_to_str(volume)    + "mL   "; // lower line
 }
 
 void handle_keypress()
@@ -171,8 +177,6 @@ void handle_keypress()
       break;
     }
   }
-  s1 = "Q = " + dec_to_str(flow_rate*60) + "mL/min"; // upper line
-  s2 = "V = " + dec_to_str(volume)    + "mL   "; // lower line
 }
 
 void refresh(void)
@@ -188,16 +192,18 @@ void setup(void)
   // LCD setup
   lcd.begin(16, 2);
   lcd.setCursor(0,0);
-
+  lcd.print(s1);
+  lcd.setCursor(0,1);
+  lcd.print(s2);
+  delay(1000);
+  
   // button pin    
   pinMode(buttonPin, INPUT);
   
-  /*
   // interrupt to refresh the LCD
   long timer_delay = 100e3; // delay in us
   Timer1.initialize(timer_delay);
   Timer1.attachInterrupt(refresh,timer_delay);
-  */
   
   // stepper motor setup
   pinMode(MS1, OUTPUT);
@@ -210,27 +216,14 @@ void setup(void)
   pinMode(motorDirPin, OUTPUT);
   pinMode(motorStepPin, OUTPUT);
   digitalWrite(motorDirPin, dir);
-
-  flow_rate = 1.0; // mL/s
+  
+  // set initial variables
+  flow_rate = 0.5; // mL/s
   revs_per_s = revs_per_mL*flow_rate; // revs/s
-  delay_per_step = 1e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]);
+  delay_per_step = 0.8e6/(revs_per_s * steps_per_revolution * usteps_per_step[USTEPS_INDEX]); // us/step
 }
 
 void loop(void)
 {
-  //handle_keypress();
-  move_syringe(dir);
-  
-  // change direction
-  if (dir == HIGH) {
-    dir = LOW;
-  } else { 
-    dir = HIGH;
-  }
-  
-  lcd.setCursor(0,0);
-  lcd.print(s1);
-  lcd.setCursor(0,1);
-  lcd.print(s2);
-  delay(2000);
+  handle_keypress();
 }
