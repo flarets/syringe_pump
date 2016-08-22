@@ -24,8 +24,8 @@ float MIN_FLOW_RATE = 0.99/60.0; // min flow rate, mL/min, accounts for round-of
 float MAX_FLOW_RATE = 60.0/60.0; // max flow rate, mL/min
 
 // syringe pump constants
-float syringe_volume = 25.0; // mL
-float syringe_barrel_length = 78.5; // mm
+float syringe_volume = 60.0; // mL
+float syringe_barrel_length = 109.0; // mm
 float threaded_rod_pitch = 8.0; // mm/rev
 
 // LCD values
